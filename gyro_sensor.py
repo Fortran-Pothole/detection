@@ -32,9 +32,9 @@ def read_gyro():
     gyro_x = read_word_2c(GYRO_XOUT_H)
     return gyro_x / 131.0  # Convert raw data to degrees/second
 
-# Thresholds for jolt detection
-MILD_JOLT_THRESHOLD = 50    # Level 1: Mild jolt
-SEVERE_JOLT_THRESHOLD = 100  # Level 2: Severe jolt
+# Thresholds for jolt detection (lowered for more sensitivity)
+MILD_JOLT_THRESHOLD = 10    # Level 1: Mild jolt (lowered)
+SEVERE_JOLT_THRESHOLD = 30  # Level 2: Severe jolt (lowered)
 
 # Initialize baseline gyro
 baseline_gyro = 0
