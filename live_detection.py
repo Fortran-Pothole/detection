@@ -2,7 +2,7 @@ from ultralytics import YOLO
 import cv2
 
 # YOLO 모델 로드
-model = YOLO('clahe3canny.pt')  # .pt 파일 경로
+model = YOLO('../clahe3canny.pt')  # .pt 파일 경로
 
 # libcamera로 캡처한 이미지 불러오기
 image = cv2.imread('image.jpg')
