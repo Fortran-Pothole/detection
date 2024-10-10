@@ -1,62 +1,73 @@
 import smbus2
 import time
-import math
 
-# MPU6050 레지스터 주소
+# MPU6050 register addresses
 MPU6050_ADDR = 0x68
 PWR_MGMT_1 = 0x6B
 GYRO_XOUT_H = 0x43
 
-# I2C 버스 초기화
+# Initialize I2C bus
 bus = smbus2.SMBus(1)
 
-# MPU6050 전원 켜기
-bus.write_byte_data(MPU6050_ADDR, PWR_MGMT_1, 0)
+# Initialize MPU6050 (wake up from sleep mode)
+def init_mpu6050():
+    try:
+        bus.write_byte_data(MPU6050_ADDR, PWR_MGMT_1, 0)  # Wake up MPU6050
+        print("MPU6050 initialized successfully.")
+    except Exception as e:
+        print(f"Failed to initialize MPU6050: {e}")
 
-# 자이로 데이터 읽기 함수
-def read_gyro():
-    gyro_x = read_word_2c(GYRO_XOUT_H)
-    return gyro_x / 131.0  # 각속도 (degree/s)로 변환
-
-# 16-bit 두 바이트를 하나로 합쳐주는 함수
+# Function to read raw data from a 16-bit register
 def read_word_2c(addr):
     high = bus.read_byte_data(MPU6050_ADDR, addr)
-    low = bus.read_byte_data(MPU6050_ADDR, addr+1)
+    low = bus.read_byte_data(MPU6050_ADDR, addr + 1)
     val = (high << 8) + low
-    if (val >= 0x8000):
+    if val >= 0x8000:
         return -((65535 - val) + 1)
     else:
         return val
 
-# 기준 설정
-mild_jolt_threshold = 50  # 1번: 약한 덜컹 (각속도 변화 임계값)
-severe_jolt_threshold = 100  # 2번: 심한 덜컹 (각속도 변화 임계값)
-baseline_gyro = 0  # 초기 기준 각속도 (평균값으로 업데이트)
+# Function to read gyroscope data for X axis and convert it to degrees/s
+def read_gyro():
+    gyro_x = read_word_2c(GYRO_XOUT_H)
+    return gyro_x / 131.0  # Convert raw data to degrees/second
 
+# Thresholds for jolt detection
+MILD_JOLT_THRESHOLD = 50    # Level 1: Mild jolt
+SEVERE_JOLT_THRESHOLD = 100  # Level 2: Severe jolt
+
+# Initialize baseline gyro
+baseline_gyro = 0
+
+# Function to detect jolt based on gyroscope data
 def detect_jolt():
     global baseline_gyro
-    
+
     while True:
-        # 자이로 데이터를 읽음
+        # Read current gyroscope data
         current_gyro = read_gyro()
-        
-        # 평소의 기울기와 차이를 계산
+
+        # Calculate the change in gyroscope data
         delta_gyro = abs(current_gyro - baseline_gyro)
-        
-        # 덜컹임 단계 감지
-        if delta_gyro > severe_jolt_threshold:
-            print(f"2번 심한 덜컹 감지! 변화량: {delta_gyro} degree/s")
-        elif delta_gyro > mild_jolt_threshold:
-            print(f"1번 약한 덜컹 감지! 변화량: {delta_gyro} degree/s")
-        
-        # 평소의 각속도를 업데이트 (단순 이동 평균)
+
+        # Detect level of jolt
+        if delta_gyro > SEVERE_JOLT_THRESHOLD:
+            print(f"Shaking a lot! {delta_gyro:.2f} degree/s")
+        elif delta_gyro > MILD_JOLT_THRESHOLD:
+            print(f"Shaking a little! {delta_gyro:.2f} degree/s")
+        else:
+            print(f"Shaking slightly more than before! {delta_gyro:.2f} degree/s")
+
+        # Update baseline gyro using a simple moving average
         baseline_gyro = (baseline_gyro * 0.9) + (current_gyro * 0.1)
-        
-        # 약간의 지연
+
+        # Add a small delay to avoid flooding the console
         time.sleep(0.1)
 
-# 덜컹임 감지 실행
-try:
-    detect_jolt()
-except KeyboardInterrupt:
-    print("프로그램 종료")
+# Main function to initialize sensor and start jolt detection
+if __name__ == "__main__":
+    init_mpu6050()
+    try:
+        detect_jolt()
+    except KeyboardInterrupt:
+        print("Program terminated.")
