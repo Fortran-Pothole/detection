@@ -5,7 +5,7 @@ from libcamera import CameraManager, Transform
 import time
 
 # 모델 로드 (이미 학습된 포트홀 탐지 모델을 로드합니다)
-model = YOLO('pothole_detection_model.pt')
+model = YOLO('clahe3canny.pt')
 
 # 카메라 초기화 및 설정
 def initialize_camera():
