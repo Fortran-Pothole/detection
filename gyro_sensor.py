@@ -5,6 +5,8 @@ import time
 MPU6050_ADDR = 0x68
 PWR_MGMT_1 = 0x6B
 GYRO_XOUT_H = 0x43
+GYRO_YOUT_H = 0x45
+GYRO_ZOUT_H = 0x47
 
 # Initialize I2C bus
 bus = smbus2.SMBus(1)
@@ -27,39 +29,50 @@ def read_word_2c(addr):
     else:
         return val
 
-# Function to read gyroscope data for X axis and convert it to degrees/s
+# Function to read gyroscope data for X, Y, and Z axes and convert to degrees/s
 def read_gyro():
-    gyro_x = read_word_2c(GYRO_XOUT_H)
-    return gyro_x / 131.0  # Convert raw data to degrees/second
+    gyro_x = read_word_2c(GYRO_XOUT_H) / 131.0
+    gyro_y = read_word_2c(GYRO_YOUT_H) / 131.0
+    gyro_z = read_word_2c(GYRO_ZOUT_H) / 131.0
+    return gyro_x, gyro_y, gyro_z
 
 # Thresholds for jolt detection (lowered for more sensitivity)
-MILD_JOLT_THRESHOLD = 10    # Level 1: Mild jolt (lowered)
-SEVERE_JOLT_THRESHOLD = 30  # Level 2: Severe jolt (lowered)
+MILD_JOLT_THRESHOLD = 10    # Level 1: Mild jolt
+SEVERE_JOLT_THRESHOLD = 30  # Level 2: Severe jolt
 
-# Initialize baseline gyro
-baseline_gyro = 0
+# Initialize baseline gyro values
+baseline_gyro_x = 0
+baseline_gyro_y = 0
+baseline_gyro_z = 0
 
 # Function to detect jolt based on gyroscope data
 def detect_jolt():
-    global baseline_gyro
+    global baseline_gyro_x, baseline_gyro_y, baseline_gyro_z
 
     while True:
-        # Read current gyroscope data
-        current_gyro = read_gyro()
+        # Read current gyroscope data for all three axes
+        gyro_x, gyro_y, gyro_z = read_gyro()
 
-        # Calculate the change in gyroscope data
-        delta_gyro = abs(current_gyro - baseline_gyro)
+        # Calculate the change in gyroscope data for each axis
+        delta_gyro_x = abs(gyro_x - baseline_gyro_x)
+        delta_gyro_y = abs(gyro_y - baseline_gyro_y)
+        delta_gyro_z = abs(gyro_z - baseline_gyro_z)
 
-        # Detect level of jolt
-        if delta_gyro > SEVERE_JOLT_THRESHOLD:
-            print(f"Shaking a lot! {delta_gyro:.2f} degree/s")
-        elif delta_gyro > MILD_JOLT_THRESHOLD:
-            print(f"Shaking a little! {delta_gyro:.2f} degree/s")
+        # Determine the largest delta across all axes
+        max_delta = max(delta_gyro_x, delta_gyro_y, delta_gyro_z)
+
+        # Detect level of jolt based on the largest delta
+        if max_delta > SEVERE_JOLT_THRESHOLD:
+            print(f"Shaking a lot! {max_delta:.2f} degree/s")
+        elif max_delta > MILD_JOLT_THRESHOLD:
+            print(f"Shaking a little! {max_delta:.2f} degree/s")
         else:
-            print(f"Shaking slightly more than before! {delta_gyro:.2f} degree/s")
+            print(f"Shaking slightly more than before! {max_delta:.2f} degree/s")
 
-        # Update baseline gyro using a simple moving average
-        baseline_gyro = (baseline_gyro * 0.9) + (current_gyro * 0.1)
+        # Update baseline gyros using a simple moving average
+        baseline_gyro_x = (baseline_gyro_x * 0.9) + (gyro_x * 0.1)
+        baseline_gyro_y = (baseline_gyro_y * 0.9) + (gyro_y * 0.1)
+        baseline_gyro_z = (baseline_gyro_z * 0.9) + (gyro_z * 0.1)
 
         # Add a small delay to avoid flooding the console
         time.sleep(0.1)
