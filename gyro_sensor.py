@@ -52,12 +52,12 @@ def detect_jolt():
 
         # Detect level of jolt
         if delta_gyro > SEVERE_JOLT_THRESHOLD:
-
             print(f"Shaking a lot! {delta_gyro:.2f} degree/s")
         elif delta_gyro > MILD_JOLT_THRESHOLD:
             print(f"Shaking a little! {delta_gyro:.2f} degree/s")
         else:
             print(f"Shaking slightly more than before! {delta_gyro:.2f} degree/s")
+
         # Update baseline gyro using a simple moving average
         baseline_gyro = (baseline_gyro * 0.9) + (current_gyro * 0.1)
 
