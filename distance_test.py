@@ -1,42 +1,58 @@
 import RPi.GPIO as GPIO
 import time
 
-# 핀 번호 설정 (TRIG와 ECHO는 각자 연결된 핀 번호로 변경하세요)
-TRIG = 23  # Trigger 핀
-ECHO = 24  # Echo 핀
+# GPIO 핀 번호 설정
+TRIG = 21
+ECHO = 20
 
-# GPIO 모드 설정
+# GPIO 설정
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(TRIG, GPIO.OUT)
 GPIO.setup(ECHO, GPIO.IN)
 
-# 초음파 거리 측정 함수
+# 타임아웃 값 설정 (초 단위)
+TIMEOUT = 1
+
 def get_ultrasonic_distance():
-    # Trigger를 짧게 HIGH 상태로 유지하여 초음파 신호 전송
+    # 초음파 신호 전송
     GPIO.output(TRIG, True)
-    time.sleep(0.00001)  # 10 마이크로초 유지
+    time.sleep(0.00001)  # 10 마이크로초 동안 신호 전송
     GPIO.output(TRIG, False)
 
-    # Echo 핀에서 신호가 돌아올 때까지 대기
+    # Echo 핀에서 신호가 들어오기 전까지 대기
+    pulse_start = time.time()
+    timeout_start = pulse_start
+    
     while GPIO.input(ECHO) == 0:
         pulse_start = time.time()
+        if pulse_start - timeout_start > TIMEOUT:
+            print("Echo signal timeout")
+            return None  # 타임아웃 발생 시 None 반환
 
+    # Echo 핀에서 신호가 들어온 시점 기록
+    pulse_end = time.time()
+    timeout_end = pulse_end
+    
     while GPIO.input(ECHO) == 1:
         pulse_end = time.time()
+        if pulse_end - timeout_end > TIMEOUT:
+            print("Echo signal timeout")
+            return None  # 타임아웃 발생 시 None 반환
 
-    # 초음파가 돌아오는 시간 계산
+    # 초음파 신호가 돌아오는 시간 계산
     pulse_duration = pulse_end - pulse_start
 
-    # 초음파 신호를 통해 거리 계산 (음속 34300 cm/s 사용)
+    # 음속을 이용해 거리 계산 (cm)
     distance = pulse_duration * 17150
-    distance = round(distance, 2)  # 소수점 두 자리까지 반올림
-
-    return distance
+    return round(distance, 2)  # 소수점 두 자리까지 반올림
 
 try:
     while True:
         dist = get_ultrasonic_distance()
-        print(f"Measured Distance = {dist} cm")
+        if dist is not None:
+            print(f"Measured Distance = {dist} cm")
+        else:
+            print("Failed to measure distance")
         time.sleep(1)
 
 except KeyboardInterrupt:
