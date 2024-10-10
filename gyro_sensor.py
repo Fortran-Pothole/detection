@@ -36,9 +36,9 @@ def read_gyro():
     gyro_z = read_word_2c(GYRO_ZOUT_H) / 131.0
     return gyro_x, gyro_y, gyro_z
 
-# Thresholds for jolt detection (lowered for more sensitivity)
-MILD_JOLT_THRESHOLD = 10    # Level 1: Mild jolt
-SEVERE_JOLT_THRESHOLD = 30  # Level 2: Severe jolt
+# Thresholds for jolt detection (less sensitive)
+MILD_JOLT_THRESHOLD = 30    # Level 1: Mild jolt (increased sensitivity threshold)
+SEVERE_JOLT_THRESHOLD = 60  # Level 2: Severe jolt (increased sensitivity threshold)
 
 # Initialize baseline gyro values
 baseline_gyro_x = 0
@@ -66,8 +66,6 @@ def detect_jolt():
             print(f"Shaking a lot! {max_delta:.2f} degree/s")
         elif max_delta > MILD_JOLT_THRESHOLD:
             print(f"Shaking a little! {max_delta:.2f} degree/s")
-        else:
-            print(f"Shaking slightly more than before! {max_delta:.2f} degree/s")
 
         # Update baseline gyros using a simple moving average
         baseline_gyro_x = (baseline_gyro_x * 0.9) + (gyro_x * 0.1)
